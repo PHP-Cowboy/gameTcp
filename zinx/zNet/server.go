@@ -12,7 +12,8 @@ type Server struct {
 	Port      int
 }
 
-func HandleFunc(conn *net.TCPConn, data []byte, cnt int) (err error) {
+func CallBackToClient(conn *net.TCPConn, data []byte, cnt int) (err error) {
+	fmt.Println("[Conn Handle] CallBackToClient ... ")
 	_, err = conn.Write(data[:cnt])
 	if err != nil {
 		fmt.Println("Write error:", err)
@@ -56,7 +57,7 @@ func (s *Server) Start() {
 				fmt.Println("AcceptTCP error:", err)
 			}
 
-			dealConn := NewConnection(conn, connId, HandleFunc)
+			dealConn := NewConnection(conn, connId, CallBackToClient)
 
 			connId++
 
