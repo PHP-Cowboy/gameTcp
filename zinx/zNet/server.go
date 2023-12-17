@@ -12,63 +12,63 @@ type Server struct {
 	Port      int
 }
 
+func HandleFunc(conn *net.TCPConn, data []byte, cnt int) (err error) {
+	_, err = conn.Write(data[:cnt])
+	if err != nil {
+		fmt.Println("Write error:", err)
+		return
+	}
+	return
+}
+
 func (s *Server) Start() {
 	fmt.Printf("[Start] Server Listenner at IP :%s, Port %d, is starting n", s.IP, s.Port)
-	// 监听地址和端口
-	serverAddr, err := net.ResolveTCPAddr(s.IPVersion, fmt.Sprintf("%s:%d", s.IP, s.Port))
-	if err != nil {
-		fmt.Println("resolve tcp addr error :", err)
-		return
-	}
 
-	var listener *net.TCPListener
-
-	// 创建TCP监听器
-	listener, err = net.ListenTCP("tcp", serverAddr)
-	if err != nil {
-		fmt.Println("ListenTCP error:", err)
-		return
-	}
-
-	defer listener.Close()
-
-	fmt.Println("start ZInx server success")
-
-	var conn *net.TCPConn
-	for {
-		// 接受客户端连接
-		conn, err = listener.AcceptTCP()
+	go func() {
+		// 监听地址和端口
+		serverAddr, err := net.ResolveTCPAddr(s.IPVersion, fmt.Sprintf("%s:%d", s.IP, s.Port))
 		if err != nil {
-			fmt.Println("AcceptTCP error:", err)
-			continue
+			fmt.Println("resolve tcp addr error :", err)
+			return
 		}
 
-		fmt.Println("Accepted new connection from", conn.RemoteAddr())
-		go func() {
-			// 读取客户端发送的数据
-			buffer := make([]byte, 1024)
-			var n int
-			n, err = conn.Read(buffer)
+		var listener *net.TCPListener
+
+		// 创建TCP监听器
+		listener, err = net.ListenTCP("tcp", serverAddr)
+		if err != nil {
+			fmt.Println("ListenTCP error:", err)
+			return
+		}
+
+		defer listener.Close()
+
+		fmt.Println("start ZInx server success")
+
+		var conn *net.TCPConn
+
+		var connId uint32 = 0
+		for {
+
+			// 接受客户端连接
+			conn, err = listener.AcceptTCP()
 			if err != nil {
-				fmt.Println("Read error:", err)
-				return
+				fmt.Println("AcceptTCP error:", err)
 			}
 
-			fmt.Printf("recv client buf %s, cnt %d\n", buffer, n)
+			dealConn := NewConnection(conn, connId, HandleFunc)
 
-			// 将数据返回给客户端
-			_, err = conn.Write(buffer[:n])
-			if err != nil {
-				fmt.Println("Write error:", err)
-				return
-			}
-		}()
-	}
+			connId++
 
+			fmt.Println("Accepted new connection from", conn.RemoteAddr())
+
+			go dealConn.Start()
+		}
+	}()
 }
 
 func (s *Server) Stop() {
-
+	fmt.Println("[STOP] zInx server , name ", s.Name)
 }
 
 func (s *Server) Serve() {
