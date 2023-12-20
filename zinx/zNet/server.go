@@ -3,13 +3,14 @@ package zNet
 import (
 	"fmt"
 	"gameTcp/zinx/iface"
+	"gameTcp/zinx/utils"
 	"net"
 )
 
 type Server struct {
 	Name      string
 	IPVersion string
-	IP        string
+	Host      string
 	Port      int
 	Router    iface.Router
 }
@@ -19,11 +20,11 @@ func (s *Server) AddRouter(router iface.Router) {
 }
 
 func (s *Server) Start() {
-	fmt.Printf("[Start] Server Listenner at IP :%s, Port %d, is starting n", s.IP, s.Port)
+	fmt.Printf("[Start] Server Listenner at Host :%s, Port %d, is starting n", s.Host, s.Port)
 
 	go func() {
 		// 监听地址和端口
-		serverAddr, err := net.ResolveTCPAddr(s.IPVersion, fmt.Sprintf("%s:%d", s.IP, s.Port))
+		serverAddr, err := net.ResolveTCPAddr(s.IPVersion, fmt.Sprintf("%s:%d", s.Host, s.Port))
 		if err != nil {
 			fmt.Println("resolve tcp addr error :", err)
 			return
@@ -75,12 +76,13 @@ func (s *Server) Serve() {
 }
 
 // 初始化Server
-func NewServer(name string, version string, ip string, port int) *Server {
+func NewServer() *Server {
+	global := utils.Global
 	return &Server{
-		Name:      name,
-		IPVersion: version,
-		IP:        ip,
-		Port:      port,
+		Name:      global.Name,
+		IPVersion: global.IPVersion,
+		Host:      global.Host,
+		Port:      global.TcpPort,
 		Router:    nil,
 	}
 }
