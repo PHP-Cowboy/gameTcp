@@ -2,6 +2,7 @@ package zNet
 
 import (
 	"fmt"
+	"gameTcp/zinx/iface"
 	"net"
 )
 
@@ -10,16 +11,11 @@ type Server struct {
 	IPVersion string
 	IP        string
 	Port      int
+	Router    iface.Router
 }
 
-func CallBackToClient(conn *net.TCPConn, data []byte, cnt int) (err error) {
-	fmt.Println("[Conn Handle] CallBackToClient ... ")
-	_, err = conn.Write(data[:cnt])
-	if err != nil {
-		fmt.Println("Write error:", err)
-		return
-	}
-	return
+func (s *Server) AddRouter(router iface.Router) {
+	s.Router = router
 }
 
 func (s *Server) Start() {
@@ -57,7 +53,7 @@ func (s *Server) Start() {
 				fmt.Println("AcceptTCP error:", err)
 			}
 
-			dealConn := NewConnection(conn, connId, CallBackToClient)
+			dealConn := NewConnection(conn, connId, s.Router)
 
 			connId++
 
@@ -85,5 +81,6 @@ func NewServer(name string, version string, ip string, port int) *Server {
 		IPVersion: version,
 		IP:        ip,
 		Port:      port,
+		Router:    nil,
 	}
 }

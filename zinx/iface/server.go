@@ -7,4 +7,6 @@ type Server interface {
 	Serve()
 	//停止
 	Stop()
+	//添加路由
+	AddRouter(router Router)
 }

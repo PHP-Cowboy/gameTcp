@@ -13,18 +13,18 @@ type Connection struct {
 	ConnId uint32
 	//当前连接的关闭状态
 	IsClosed bool
-	//该连接的处理方法api
-	HandleApi iface.HandleFunc
+	//该连接的处理方法router
+	Router iface.Router
 	//告知该链接已经退出/停止的channel
 	ExitBuffChan chan struct{}
 }
 
-func NewConnection(conn *net.TCPConn, connId uint32, handleApi iface.HandleFunc) *Connection {
+func NewConnection(conn *net.TCPConn, connId uint32, router iface.Router) *Connection {
 	return &Connection{
 		Conn:         conn,
 		ConnId:       connId,
 		IsClosed:     false,
-		HandleApi:    handleApi,
+		Router:       router,
 		ExitBuffChan: make(chan struct{}, 1),
 	}
 }
@@ -37,18 +37,23 @@ func (c *Connection) StartReader() {
 	for {
 		//读取我们最大的数据到buf中
 		var buf = make([]byte, 512)
-		cnt, err := c.Conn.Read(buf)
+		_, err := c.Conn.Read(buf)
 		if err != nil {
 			fmt.Println("receive buf err ", err)
 			c.ExitBuffChan <- struct{}{}
 			continue
 		}
-		//调用当前链接业务(这里执行的是当前conn的绑定的handle方法)
-		if err = c.HandleApi(c.Conn, buf, cnt); err != nil {
-			fmt.Println("connID ", c.ConnId, " handle is error")
-			c.ExitBuffChan <- struct{}{}
-			return
+
+		req := Request{
+			Conn: c,
+			Data: buf,
 		}
+
+		go func(req *Request) {
+			c.Router.PreHandle(req)
+			c.Router.Handle(req)
+			c.Router.AfterHandle(req)
+		}(&req)
 	}
 }
 
