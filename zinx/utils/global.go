@@ -30,7 +30,7 @@ var Global *GlobalConfig
 提供init方法，默认加载
 */
 func init() {
-	data, err := os.ReadFile("D:/www/gameTcp/zinx/conf/config.json")
+	data, err := os.ReadFile("../../zinx/conf/config.json")
 	if err != nil {
 		panic(err)
 	}
