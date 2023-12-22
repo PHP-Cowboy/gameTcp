@@ -45,7 +45,7 @@ func (s *Server) Start() {
 
 		var conn *net.TCPConn
 
-		var connId uint32 = 0
+		var connId uint32 = 1
 		for {
 
 			// 接受客户端连接

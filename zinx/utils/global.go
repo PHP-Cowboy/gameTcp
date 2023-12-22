@@ -17,7 +17,7 @@ type GlobalConfig struct {
 	Name          string       //当前服务器名称
 	Version       string       //版本号
 	IPVersion     string       //
-	MaxPacketSize uint32       //都需数据包的最大值
+	MaxPacketSize uint32       //数据包的最大值
 	MaxConn       int          //当前服务器主机允许的最大链接个数
 }
 
