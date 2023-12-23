@@ -1,8 +1,10 @@
 package zNet
 
 import (
+	"errors"
 	"fmt"
 	"gameTcp/zinx/iface"
+	"io"
 	"net"
 )
 
@@ -35,18 +37,39 @@ func (c *Connection) StartReader() {
 	defer c.Stop()
 
 	for {
+		pack := NewPack()
+
+		headData := make([]byte, pack.GetHeadLen())
 		//读取我们最大的数据到buf中
-		var buf = make([]byte, 512)
-		_, err := c.Conn.Read(buf)
-		if err != nil {
+
+		if _, err := io.ReadFull(c.GetTCPConnection(), headData); err != nil {
 			fmt.Println("receive buf err ", err)
 			c.ExitBuffChan <- struct{}{}
 			continue
 		}
 
+		msg, err := pack.UnPack(headData)
+		if err != nil {
+			fmt.Println("unpack error ", err)
+			c.ExitBuffChan <- struct{}{}
+			continue
+		}
+
+		var data []byte
+
+		if msg.GetDataLen() > 0 {
+			data = make([]byte, msg.GetDataLen())
+
+			if _, err = io.ReadFull(c.GetTCPConnection(), data); err != nil {
+				return
+			}
+		}
+
+		msg.SetData(data)
+
 		req := Request{
 			Conn: c,
-			Data: buf,
+			Msg:  msg,
 		}
 
 		go func(req *Request) {
@@ -97,4 +120,26 @@ func (c *Connection) GetTCPConnection() *net.TCPConn {
 
 func (c *Connection) RemoteAddr() net.Addr {
 	return c.Conn.RemoteAddr()
+}
+
+func (c *Connection) SendMsg(msgId uint32, data []byte) (err error) {
+	if c.IsClosed {
+		return errors.New("Connection closed when send msg")
+	}
+
+	pack := NewPack()
+
+	msg, err := pack.Pack(NewMsg(msgId, data))
+	if err != nil {
+		fmt.Println("Pack error msg id = ", msgId)
+		return errors.New("Pack error msg ")
+	}
+
+	if _, err = c.Conn.Write(msg); err != nil {
+		fmt.Println("Write msg id ", msgId, " error ")
+		c.ExitBuffChan <- struct{}{}
+		return errors.New("conn Write error")
+	}
+
+	return
 }

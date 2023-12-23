@@ -45,27 +45,27 @@ func (p *Pack) Pack(msg iface.Message) (data []byte, err error) {
 }
 
 // 拆包方法
-func (p *Pack) UnPack(data []byte) (msg iface.Message, err error) {
+func (p *Pack) UnPack(data []byte) (iface.Message, error) {
 	//创建一个从输入二进制数据的ioReader
 	dataBuff := bytes.NewReader(data)
 
-	msg = &Msg{}
+	msg := &Msg{}
 
-	if err = binary.Read(dataBuff, binary.LittleEndian, &msg.DataLen); err != nil {
-		return
+	if err := binary.Read(dataBuff, binary.LittleEndian, &msg.DataLen); err != nil {
+		return nil, err
 	}
 
-	if err = binary.Read(dataBuff, binary.LittleEndian, &msg.Id); err != nil {
-		return
+	if err := binary.Read(dataBuff, binary.LittleEndian, &msg.Id); err != nil {
+		return nil, err
 	}
 
-	if err = binary.Read(dataBuff, binary.LittleEndian, &msg.Data); err != nil {
-		return
+	if err := binary.Read(dataBuff, binary.LittleEndian, &msg.Data); err != nil {
+		return nil, err
 	}
 
 	if utils.Global.MaxPacketSize > 0 && utils.Global.MaxPacketSize < msg.DataLen {
 		return nil, errors.New("Too large msg data recieved")
 	}
 
-	return
+	return msg, nil
 }

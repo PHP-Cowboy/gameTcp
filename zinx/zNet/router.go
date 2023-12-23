@@ -2,8 +2,7 @@ package zNet
 
 import "gameTcp/zinx/iface"
 
-type BaseRouter struct {
-}
+type BaseRouter struct{}
 
 func (br *BaseRouter) PreHandle(req iface.Request) {
 

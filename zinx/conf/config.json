@@ -5,5 +5,5 @@
   "MaxConn":3,
   "Version":"zInx V0.4",
   "IPVersion": "tcp4",
-  "MaxPacketSize": 1024
+  "MaxPacketSize": 4096
 }

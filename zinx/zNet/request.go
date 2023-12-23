@@ -4,7 +4,7 @@ import "gameTcp/zinx/iface"
 
 type Request struct {
 	Conn iface.Connection
-	Data []byte
+	Msg  iface.Message
 }
 
 func (r *Request) GetConnection() iface.Connection {
@@ -12,5 +12,9 @@ func (r *Request) GetConnection() iface.Connection {
 }
 
 func (r *Request) GetData() []byte {
-	return r.Data
+	return r.Msg.GetData()
+}
+
+func (r *Request) GetMsgId() uint32 {
+	return r.Msg.GetMsgId()
 }
