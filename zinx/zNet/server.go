@@ -8,15 +8,28 @@ import (
 )
 
 type Server struct {
-	Name      string
-	IPVersion string
-	Host      string
-	Port      int
-	Router    iface.Router
+	Name       string
+	IPVersion  string
+	Host       string
+	Port       int
+	MsgHandler iface.MsgHandler
 }
 
-func (s *Server) AddRouter(router iface.Router) {
-	s.Router = router
+// 初始化Server
+func NewServer() *Server {
+	global := utils.Global
+	return &Server{
+		Name:       global.Name,
+		IPVersion:  global.IPVersion,
+		Host:       global.Host,
+		Port:       global.TcpPort,
+		MsgHandler: NewMsgHandler(),
+	}
+}
+
+func (s *Server) AddRouter(msgId uint32, router iface.Router) {
+	s.MsgHandler.AddRouter(msgId, router)
+	fmt.Println("Add router success! msgId = ", msgId)
 }
 
 func (s *Server) Start() {
@@ -54,7 +67,7 @@ func (s *Server) Start() {
 				fmt.Println("AcceptTCP error:", err)
 			}
 
-			dealConn := NewConnection(conn, connId, s.Router)
+			dealConn := NewConnection(conn, connId, s.MsgHandler)
 
 			connId++
 
@@ -73,16 +86,4 @@ func (s *Server) Serve() {
 	s.Start()
 	//阻塞
 	select {}
-}
-
-// 初始化Server
-func NewServer() *Server {
-	global := utils.Global
-	return &Server{
-		Name:      global.Name,
-		IPVersion: global.IPVersion,
-		Host:      global.Host,
-		Port:      global.TcpPort,
-		Router:    nil,
-	}
 }

@@ -8,5 +8,5 @@ type Server interface {
 	//停止
 	Stop()
 	//添加路由
-	AddRouter(router Router)
+	AddRouter(msgId uint32, router Router)
 }

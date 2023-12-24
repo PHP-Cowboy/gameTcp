@@ -15,18 +15,18 @@ type Connection struct {
 	ConnId uint32
 	//当前连接的关闭状态
 	IsClosed bool
-	//该连接的处理方法router
-	Router iface.Router
+	//消息管理MsgId和对应处理方法的消息管理模块
+	MsgHandler iface.MsgHandler
 	//告知该链接已经退出/停止的channel
 	ExitBuffChan chan struct{}
 }
 
-func NewConnection(conn *net.TCPConn, connId uint32, router iface.Router) *Connection {
+func NewConnection(conn *net.TCPConn, connId uint32, msgHandler iface.MsgHandler) *Connection {
 	return &Connection{
 		Conn:         conn,
 		ConnId:       connId,
 		IsClosed:     false,
-		Router:       router,
+		MsgHandler:   msgHandler,
 		ExitBuffChan: make(chan struct{}, 1),
 	}
 }
@@ -72,11 +72,7 @@ func (c *Connection) StartReader() {
 			Msg:  msg,
 		}
 
-		go func(req *Request) {
-			c.Router.PreHandle(req)
-			c.Router.Handle(req)
-			c.Router.AfterHandle(req)
-		}(&req)
+		go c.MsgHandler.Do(&req)
 	}
 }
 
