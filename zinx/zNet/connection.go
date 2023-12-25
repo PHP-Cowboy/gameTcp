@@ -19,6 +19,8 @@ type Connection struct {
 	MsgHandler iface.MsgHandler
 	//告知该链接已经退出/停止的channel
 	ExitBuffChan chan struct{}
+	//无缓冲管道，用于读、写两个goroutine之间的消息通信
+	msgChan chan []byte
 }
 
 func NewConnection(conn *net.TCPConn, connId uint32, msgHandler iface.MsgHandler) *Connection {
@@ -28,6 +30,27 @@ func NewConnection(conn *net.TCPConn, connId uint32, msgHandler iface.MsgHandler
 		IsClosed:     false,
 		MsgHandler:   msgHandler,
 		ExitBuffChan: make(chan struct{}, 1),
+		msgChan:      make(chan []byte),
+	}
+}
+
+func (c *Connection) StartWriter() {
+	fmt.Println("[Writer Goroutine is running]")
+	defer fmt.Println(c.RemoteAddr().String(), "[conn Writer exit!]")
+
+	for {
+		select {
+		case data := <-c.msgChan:
+			//有数据要写给客户端
+			if _, err := c.Conn.Write(data); err != nil {
+				fmt.Println("Send Data error:, ", err, " Conn Writer exit")
+				c.ExitBuffChan <- struct{}{}
+				return
+			}
+		case <-c.ExitBuffChan:
+			//conn已经关闭
+			return
+		}
 	}
 }
 
@@ -78,6 +101,7 @@ func (c *Connection) StartReader() {
 
 func (c *Connection) Start() {
 	go c.StartReader()
+	go c.StartWriter()
 
 	select {
 	case <-c.ExitBuffChan:
@@ -131,11 +155,8 @@ func (c *Connection) SendMsg(msgId uint32, data []byte) (err error) {
 		return errors.New("Pack error msg ")
 	}
 
-	if _, err = c.Conn.Write(msg); err != nil {
-		fmt.Println("Write msg id ", msgId, " error ")
-		c.ExitBuffChan <- struct{}{}
-		return errors.New("conn Write error")
-	}
+	//写回客户端
+	c.msgChan <- msg //将之前直接回写给conn.Write的方法 改为 发送给Channel 供Writer读取
 
 	return
 }
