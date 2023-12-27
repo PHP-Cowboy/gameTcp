@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 	"gameTcp/zinx/iface"
+	"gameTcp/zinx/utils"
 	"io"
 	"net"
 )
@@ -95,7 +96,12 @@ func (c *Connection) StartReader() {
 			Msg:  msg,
 		}
 
-		go c.MsgHandler.Do(&req)
+		if utils.Global.WorkerPoolSize > 0 {
+			c.MsgHandler.SendMsgToTaskQueue(&req)
+		} else {
+			go c.MsgHandler.Do(&req)
+		}
+
 	}
 }
 

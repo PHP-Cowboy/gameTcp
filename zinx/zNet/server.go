@@ -36,6 +36,7 @@ func (s *Server) Start() {
 	fmt.Printf("[Start] Server Listenner at Host :%s, Port %d, is starting n", s.Host, s.Port)
 
 	go func() {
+		s.MsgHandler.StartWorkerPool()
 		// 监听地址和端口
 		serverAddr, err := net.ResolveTCPAddr(s.IPVersion, fmt.Sprintf("%s:%d", s.Host, s.Port))
 		if err != nil {

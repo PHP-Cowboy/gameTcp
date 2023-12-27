@@ -3,7 +3,9 @@
   "Host":"127.0.0.1",
   "TcpPort":7777,
   "MaxConn":3,
-  "Version":"zInx V0.4",
+  "Version":"zInx V0.8",
   "IPVersion": "tcp4",
-  "MaxPacketSize": 4096
+  "MaxPacketSize": 4096,
+  "WorkerPoolSize": 10,
+  "MaxWorkerTaskLen": 1024
 }
