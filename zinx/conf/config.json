@@ -7,5 +7,6 @@
   "IPVersion": "tcp4",
   "MaxPacketSize": 4096,
   "WorkerPoolSize": 10,
-  "MaxWorkerTaskLen": 1024
+  "MaxWorkerTaskLen": 1024,
+  "MaxMsgChanLen": 1024
 }

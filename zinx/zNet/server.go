@@ -8,22 +8,26 @@ import (
 )
 
 type Server struct {
-	Name       string
-	IPVersion  string
-	Host       string
-	Port       int
-	MsgHandler iface.MsgHandler
+	Name        string                      //服务器的名称
+	IPVersion   string                      //tcp4 or other
+	Host        string                      //服务绑定的Host
+	Port        int                         //服务绑定的端口
+	MsgHandler  iface.MsgHandler            //当前Server的消息管理模块，用来绑定MsgId和对应的处理方法
+	ConnManager iface.ConnManager           //当前Server的链接管理器
+	OnConnStart func(conn iface.Connection) //该Server的连接创建时Hook函数
+	OnConnStop  func(conn iface.Connection) //该Server的连接断开时的Hook函数
 }
 
 // 初始化Server
 func NewServer() *Server {
 	global := utils.Global
 	return &Server{
-		Name:       global.Name,
-		IPVersion:  global.IPVersion,
-		Host:       global.Host,
-		Port:       global.TcpPort,
-		MsgHandler: NewMsgHandler(),
+		Name:        global.Name,
+		IPVersion:   global.IPVersion,
+		Host:        global.Host,
+		Port:        global.TcpPort,
+		MsgHandler:  NewMsgHandler(),
+		ConnManager: NewConnManager(),
 	}
 }
 
@@ -61,6 +65,9 @@ func (s *Server) Start() {
 
 		var connId uint32 = 1
 		for {
+			if s.ConnManager.Len() >= utils.Global.MaxConn {
+				continue
+			}
 
 			// 接受客户端连接
 			conn, err = listener.AcceptTCP()
@@ -68,7 +75,7 @@ func (s *Server) Start() {
 				fmt.Println("AcceptTCP error:", err)
 			}
 
-			dealConn := NewConnection(conn, connId, s.MsgHandler)
+			dealConn := NewConnection(s, conn, connId, s.MsgHandler)
 
 			connId++
 
@@ -81,10 +88,39 @@ func (s *Server) Start() {
 
 func (s *Server) Stop() {
 	fmt.Println("[STOP] zInx server , name ", s.Name)
+	s.ConnManager.ClearConn()
 }
 
 func (s *Server) Serve() {
 	s.Start()
 	//阻塞
 	select {}
+}
+
+func (s *Server) GetConnManager() iface.ConnManager {
+	return s.ConnManager
+}
+
+// 设置该Server的连接创建时Hook函数
+func (s *Server) SetOnConnStart(hookFunc func(iface.Connection)) {
+	s.OnConnStart = hookFunc
+}
+
+// 设置该Server的连接断开时的Hook函数
+func (s *Server) SetOnConnStop(hookFunc func(iface.Connection)) {
+	s.OnConnStop = hookFunc
+}
+
+// 调用连接OnConnStart Hook函数
+func (s *Server) CallOnConnStart(conn iface.Connection) {
+	if s.OnConnStart != nil {
+		s.OnConnStart(conn)
+	}
+}
+
+// 调用连接OnConnStop Hook函数
+func (s *Server) CallOnConnStop(conn iface.Connection) {
+	if s.OnConnStop != nil {
+		s.OnConnStop(conn)
+	}
 }
