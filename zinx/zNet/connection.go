@@ -7,17 +7,20 @@ import (
 	"gameTcp/zinx/utils"
 	"io"
 	"net"
+	"sync"
 )
 
 type Connection struct {
-	TcpServer    iface.Server     //当前conn属于哪个server
-	Conn         *net.TCPConn     //当前连接的socket TCP套接字
-	ConnId       uint32           //当前连接的ID 也可以称作为SessionID，ID全局唯一
-	IsClosed     bool             //当前连接的关闭状态
-	MsgHandler   iface.MsgHandler //消息管理MsgId和对应处理方法的消息管理模块
-	ExitBuffChan chan struct{}    //告知该链接已经退出/停止的channel
-	msgChan      chan []byte      //无缓冲管道，用于读、写两个goroutine之间的消息通信
-	msgBuffChan  chan []byte      //有关冲管道，用于读、写两个goroutine之间的消息通信
+	TcpServer    iface.Server           //当前conn属于哪个server
+	Conn         *net.TCPConn           //当前连接的socket TCP套接字
+	ConnId       uint32                 //当前连接的ID 也可以称作为SessionID，ID全局唯一
+	IsClosed     bool                   //当前连接的关闭状态
+	MsgHandler   iface.MsgHandler       //消息管理MsgId和对应处理方法的消息管理模块
+	ExitBuffChan chan struct{}          //告知该链接已经退出/停止的channel
+	msgChan      chan []byte            //无缓冲管道，用于读、写两个goroutine之间的消息通信
+	msgBuffChan  chan []byte            //有关冲管道，用于读、写两个goroutine之间的消息通信
+	property     map[string]interface{} //链接属性
+	propertyLock sync.RWMutex           //保护链接属性修改的锁
 }
 
 func NewConnection(server iface.Server, conn *net.TCPConn, connId uint32, msgHandler iface.MsgHandler) *Connection {
@@ -30,6 +33,7 @@ func NewConnection(server iface.Server, conn *net.TCPConn, connId uint32, msgHan
 		ExitBuffChan: make(chan struct{}, 1),
 		msgChan:      make(chan []byte),
 		msgBuffChan:  make(chan []byte, utils.Global.MaxMsgChanLen),
+		property:     make(map[string]interface{}),
 	}
 
 	//将新创建的Conn添加到链接管理中
@@ -203,4 +207,33 @@ func (c *Connection) SendBuffMsg(msgId uint32, data []byte) (err error) {
 	c.msgBuffChan <- msg //将之前直接回写给conn.Write的方法 改为 发送给Channel 供Writer读取
 
 	return
+}
+
+// 设置链接属性
+func (c *Connection) SetProperty(key string, value interface{}) {
+	c.propertyLock.Lock()
+	defer c.propertyLock.Unlock()
+
+	c.property[key] = value
+}
+
+// 获取链接属性
+func (c *Connection) GetProperty(key string) (interface{}, error) {
+	c.propertyLock.RLock()
+	defer c.propertyLock.RUnlock()
+
+	value, ok := c.property[key]
+
+	if !ok {
+		return nil, errors.New("not found")
+	}
+	return value, nil
+}
+
+// 移除链接属性
+func (c *Connection) RemoveProperty(key string) {
+	c.propertyLock.Lock()
+	defer c.propertyLock.Unlock()
+
+	delete(c.property, key)
 }
